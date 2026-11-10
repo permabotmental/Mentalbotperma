@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: ultra-fast-nc-bot
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot.py
+    envVars:
+      - key: OWNER_ID
+        sync: false
+      - key: BOT_TOKENS
+        sync: false
+      - key: PORT
+        value: 10000
+    plan: free
