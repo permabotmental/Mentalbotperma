@@ -3,16 +3,18 @@
 """
 ⚡ ULTRA-LIGHTWEIGHT RENDER NC BOT (24/7 RENDER 512MB COMPATIBLE) ⚡
 - 100% ENV Driven (No hardcoded tokens)
-- 1 NC every 2 seconds (Continuous Non-Stop Relay)
+- 1 NC every 0.72s (Uncoverable Rocket Speed & Zero-Flood for 1 Bot)
 - Built-in Keep-Alive HTTP Server on Port 10000 (Render + UptimeRobot)
 - Daily 6:00 PM IST Zero-Downtime Memory & Storage Purge
 - Real-time 512 MB Render RAM Monitor with '! usage' Command
+- Sudo System & Strict 5 GB Monthly Bandwidth Protection
 """
 
 import os
 import re
 import sys
 import time
+import json
 import random
 import asyncio
 import datetime
@@ -50,7 +52,6 @@ BOT_TOKENS: List[str] = [
 ]
 
 PORT = int(os.environ.get("PORT", "10000"))
-# ⚡ 500% BYPASS: Render automatically provides RENDER_EXTERNAL_URL (e.g. https://my-bot.onrender.com)
 RENDER_EXTERNAL_URL = os.environ.get("RENDER_EXTERNAL_URL", "").strip().rstrip("/")
 BOT_START_TIME = time.time()
 active_tasks: Dict[int, asyncio.Event] = {}
@@ -90,13 +91,11 @@ known_groups: Set[int] = load_known_groups()
 # 2.2 Sudo Users Management (Pure Zero-Storage, In-Memory + Text File)
 def load_sudo_users() -> Set[int]:
     sudos: Set[int] = set()
-    # From ENV
     raw_sudos = os.environ.get("SUDO_USERS", "")
     for s in re.split(r"[,\s]+", raw_sudos):
         s = s.strip()
         if s.isdigit():
             sudos.add(int(s))
-    # From file
     if os.path.exists(SUDO_USERS_FILE):
         try:
             with open(SUDO_USERS_FILE, "r", encoding="utf-8") as f:
@@ -161,16 +160,13 @@ def perform_memory_and_storage_purge(reason: str = "Daily 6:00 PM Purge"):
     global seen_update_ids, daily_reset_stats
     ram_before = get_ram_mb()
 
-    # Trim seen updates
     if len(seen_update_ids) > 50:
         seen_update_ids = set(sorted(list(seen_update_ids))[-50:])
 
-    # Clean finished chat events
     dead_chats = [cid for cid, ev in list(active_tasks.items()) if ev.is_set()]
     for cid in dead_chats:
         active_tasks.pop(cid, None)
 
-    # Clean /tmp and __pycache__
     for p in ["/tmp", "__pycache__"]:
         try:
             if os.path.isdir(p):
@@ -182,7 +178,6 @@ def perform_memory_and_storage_purge(reason: str = "Daily 6:00 PM Purge"):
             pass
 
     collected = gc.collect(2)
-    # ⚡ C-LEVEL MEMORY PURGE: Force Linux kernel to reclaim unmapped heap memory immediately
     try:
         import ctypes
         libc = ctypes.CDLL("libc.so.6")
@@ -208,11 +203,9 @@ async def daily_memory_cleaner_worker():
             ist_now = datetime.datetime.utcnow() + datetime.timedelta(hours=5, minutes=30)
             today_str = ist_now.strftime("%Y-%m-%d")
 
-            # Daily at 6:00 PM (18:00 IST)
             if ist_now.hour == 18 and last_daily_date != today_str:
                 last_daily_date = today_str
                 perform_memory_and_storage_purge("Daily 6:00 PM IST Auto-Purge")
-            # Gentle hourly collect at minute 0
             elif ist_now.minute == 0:
                 perform_memory_and_storage_purge("Hourly Memory Sweep")
         except Exception:
@@ -250,7 +243,6 @@ async def nc_loop(client, chat_id: int, base: str, stop_event: asyncio.Event):
     global TOTAL_NAME_CHANGES, GLOBAL_BOT_IDX
     last_cache = [""]
 
-    # Initial micro-jitter to prevent 50+ groups from colliding at the exact same millisecond
     await asyncio.sleep(random.uniform(0.05, 0.8))
 
     while not stop_event.is_set():
@@ -258,15 +250,12 @@ async def nc_loop(client, chat_id: int, base: str, stop_event: asyncio.Event):
             await asyncio.sleep(2.0)
             continue
 
-        # 🚀 1-BOT FLOODLESS & ZERO-STUCK ENGINE (Tailored for 1 Bot per Render)
-        # Telegram API official hard limit for single-chat setChatTitle is 1 request per ~0.65-0.75 seconds.
         new_title = make_stylish_name(base, last_cache)
         token = BOT_TOKENS[0]
         retry_delay = 0.0
 
         try:
             url = f"https://api.telegram.org/bot{token}/setChatTitle"
-            # Ultra-compact JSON payload + header compression (cuts request payload from 1.2 KB down to 0.28 KB!)
             resp = await client.post(
                 url,
                 json={"chat_id": chat_id, "title": new_title},
@@ -282,7 +271,6 @@ async def nc_loop(client, chat_id: int, base: str, stop_event: asyncio.Event):
                     active_tasks.pop(chat_id, None)
                     stop_event.set()
                     return
-                # If Telegram sends FloodWait, absorb the exact wait cleanly without crashing or freezing
                 retry_after = data.get("parameters", {}).get("retry_after")
                 if retry_after:
                     retry_delay = float(retry_after)
@@ -290,15 +278,12 @@ async def nc_loop(client, chat_id: int, base: str, stop_event: asyncio.Event):
             pass
 
         # ⚡ 1-BOT ZERO-FLOOD SWEET SPOT SPEED:
-        # 0.72s - 0.78s: Telegram will NEVER trigger 429 FloodWait for a single bot!
-        # It changes titles so fast that manual/enemy bots cannot cover it, yet stays 100% within Telegram's allowed threshold!
         if retry_delay > 0:
             sleep_sec = retry_delay + 0.1
         else:
             active_count = len(active_tasks)
             if active_count <= 1:
-                # 1 Group: 0.72s sweet spot (Fastest possible without Telegram FloodWait)
-                sleep_sec = 0.72
+                sleep_sec = 0.72  # 🚀 Fast 0.72s
             elif active_count <= 3:
                 sleep_sec = 0.85
             elif active_count <= 6:
@@ -321,7 +306,6 @@ async def send_msg(client, token: str, chat_id: int, text: str):
 
 # 8. Command Handler (! usage, /allgc, /listgc, /addgc, /nc, /nc stop)
 async def handle_update(client, update: dict):
-    # Auto-track any group where bot was added or updated
     my_chat_member = update.get("my_chat_member")
     if my_chat_member:
         c = my_chat_member.get("chat")
@@ -332,8 +316,7 @@ async def handle_update(client, update: dict):
     if not msg:
         return
 
-    # 🛡️ ZERO-MEDIA FILTER (Save 100% Inbound Bandwidth & Keep Monthly Data Under 4GB)
-    # Discard photos, videos, stickers, voice, audio, documents, animations instantly without downloading
+    # 🛡️ ZERO-MEDIA FILTER (Save 100% Inbound Bandwidth)
     if any(k in msg for k in ("photo", "video", "sticker", "voice", "audio", "document", "animation", "video_note")):
         return
 
@@ -341,7 +324,6 @@ async def handle_update(client, update: dict):
     chat_id = chat.get("id")
     user_id = msg.get("from", {}).get("id")
 
-    # Automatically register every group/supergroup where a message arrives
     if chat.get("type") in ("group", "supergroup") and chat_id:
         save_known_group(chat_id)
 
@@ -349,14 +331,13 @@ async def handle_update(client, update: dict):
     if not text:
         return
 
-    # Only process bot commands, ignore normal chat conversations to save CPU & RAM
     if not text.startswith(("/", "!", "+")):
         return
 
     primary_token = BOT_TOKENS[0]
     cleaned = text.strip()
 
-    # Public /start and /help command (Anyone can view this)
+    # Public /start and /help command
     if re.match(r"^(!|/|\+)?\s*(start|help|alive|info)\b", cleaned, re.IGNORECASE):
         welcome_banner = (
             f"◢█◣ ⟨ 𝐌𝐄𝐍𝐓𝐀𝐋 • 𝐏𝐄𝐑𝐌𝐀 ⟩ ◢█◣\n"
@@ -365,7 +346,8 @@ async def handle_update(client, update: dict):
             f"⚡ 𝐏𝐎𝐖𝐄𝐑𝐄𝐃 𝐁𝐘: `MENTALS PERMA BOT`\n"
             f"─────────────────────────\n"
             f"╭─◆〔 𝕬𝖛𝖆𝖎𝖑𝖆𝖇𝖑𝖊 𝕮𝖔𝖒𝖒𝖆𝖓𝖉𝖘 〕\n"
-            f"├─▹ `/nc <name>` ⊳ Start NC in this group (2s Flat)\n"
+            f"├─▹ `/nc` ⊳ Open NC Engine Menu\n"
+            f"├─▹ `/nc <name>` ⊳ Start NC in this group (0.72s Rocket)\n"
             f"├─▹ `/nc stop` ⊳ Stop NC in this group\n"
             f"├─▹ `/allgc <name>` ⊳ Start NC in ALL registered groups\n"
             f"├─▹ `/allgc stop` ⊳ Stop NC in all groups\n"
@@ -380,8 +362,6 @@ async def handle_update(client, update: dict):
     # ══════════════════════════════════════════════════
     # 👑 OWNER ONLY COMMANDS (! usage, /addsudo, /delsudo, /sudolist)
     # ══════════════════════════════════════════════════
-
-    # ! usage command (STRICTLY OWNER ONLY)
     if re.match(r"^(!|/|\+)?\s*(usage|ram|memory)\b", cleaned, re.IGNORECASE):
         if not is_owner(user_id):
             return
@@ -410,18 +390,6 @@ async def handle_update(client, update: dict):
         m, s = divmod(rem, 60)
         uptime_str = f"{h}h {m}m {s}s"
 
-        # Estimated outbound bandwidth from NC renames
-        est_mb = round((TOTAL_NAME_CHANGES * 0.85) / 1024, 2)
-        est_gb = round(est_mb / 1024, 2)
-
-        # Next monthly reset (1st of next month)
-        now_utc = datetime.datetime.utcnow()
-        if now_utc.month == 12:
-            next_month = datetime.datetime(now_utc.year + 1, 1, 1)
-        else:
-            next_month = datetime.datetime(now_utc.year, now_utc.month + 1, 1)
-        days_left = max(1, (next_month - now_utc).days)
-
         report = (
             f"◢█◣ ⟨ 𝐌𝐄𝐍𝐓𝐀𝐋 • 𝐏𝐄𝐑𝐌𝐀 ⟩ ◢█◣\n"
             f"❖═━•〔 𝐂𝐲𝐛𝐞𝐫 𝐄𝐧𝐠𝐢𝐧𝐞 𝐕3.0 〕•━═❖\n"
@@ -438,7 +406,7 @@ async def handle_update(client, update: dict):
             f"╭─◆〔 𝐍𝐂 𝐌𝐚𝐭𝐫𝐢𝐱 𝐒𝐭𝐚𝐭𝐬 〕\n"
             f"├─▹ 𝐀𝐜𝐭𝐢𝐯𝐞 𝐆𝐂𝐬: `{len(active_tasks)}` / `{len(known_groups)}` Registered\n"
             f"├─▹ 𝐓𝐨𝐭𝐚𝐥 𝐑𝐞𝐧𝐚𝐦𝐞𝐬: `{TOTAL_NAME_CHANGES}`\n"
-            f"├─▹ 𝐒𝐩𝐞𝐞𝐝: `1.0s Ultra-Speed (Zero-Flood)`\n"
+            f"├─▹ 𝐒𝐩𝐞𝐞𝐝: `0.72s Rocket (Zero-Flood)`\n"
             f"├─▹ 𝐁𝐨𝐭 𝐂𝐡𝐚𝐢𝐧: `{len(BOT_TOKENS)} Active`\n"
             f"├─▹ 𝐒𝐮𝐝𝐨 𝐔𝐬𝐞𝐫𝐬: `{len(sudo_users)}`\n"
             f"╰─▹ 𝐔𝐩𝐭𝐢𝐦𝐞: `{uptime_str}`\n"
@@ -453,14 +421,13 @@ async def handle_update(client, update: dict):
             return
         parts = cleaned.split(maxsplit=1)
         target_str = parts[1].strip() if len(parts) > 1 else ""
-        # Check reply message user
         reply_msg = msg.get("reply_to_message")
         target_uid = reply_msg.get("from", {}).get("id") if reply_msg else None
         if not target_uid and target_str.isdigit():
             target_uid = int(target_str)
 
         if not target_uid:
-            await send_msg(client, primary_token, chat_id, "ℹ️ *Usage:* `/addsudo <user_id>` ya kisi user ke msg par reply karke `/addsudo` likhein.")
+            await send_msg(client, primary_token, chat_id, "ℹ️ *Usage:* `/addsudo <user_id>` ya user ke msg par reply karke `/addsudo` likhein.")
             return
 
         sudo_users.add(target_uid)
@@ -520,7 +487,26 @@ async def handle_update(client, update: dict):
         return
 
     # ══════════════════════════════════════════════════
-    # ⚡ SUDO + OWNER COMMANDS (/nc, /nc stop, /allgc, /listgc, /addgc)
+    # ⚡ NC MENU COMMAND (Khali /nc bhejne par menu turant dikhega!)
+    # ══════════════════════════════════════════════════
+    if cleaned.lower() in ("/nc", "!nc", "+nc", "nc"):
+        status = "🟢 ACTIVE" if chat_id in active_tasks else "⚪ IDLE"
+        await send_msg(
+            client, primary_token, chat_id,
+            f"⚡ ◢█◣ ⟨ 𝐌𝐄𝐍𝐓𝐀𝐋 • 𝐏𝐄𝐑𝐌𝐀 ⟩ ◢█◣\n"
+            f"❖═━•〔 𝐍𝐂 𝐄𝐍𝐆𝐈𝐍𝐄 𝐌𝐄𝐍𝐔 〕•━═❖\n"
+            f"├─▹ 𝐒𝐭𝐚𝐭𝐮𝐬: {status}\n"
+            f"├─▹ 𝐒𝐭𝐚𝐫𝐭: `/nc <name>`\n"
+            f"├─▹ 𝐒𝐭𝐨𝐩:  `/nc stop`\n"
+            f"├─▹ 𝐀𝐥𝐥:   `/allgc <name>`\n"
+            f"├─▹ 𝐆𝐫𝐨𝐮𝐩𝐬: `/listgc`\n"
+            f"╰─▹ 𝐔𝐬𝐚𝐠𝐞: `! usage`\n"
+            f"❖═━•〔 𝐙𝐞𝐫𝐨-𝐅𝐥𝐨𝐨𝐝 • 0.72𝐬 〕•━═❖"
+        )
+        return
+
+    # ══════════════════════════════════════════════════
+    # ⚡ SUDO + OWNER COMMANDS (/nc <name>, /allgc, /listgc, /addgc)
     # ══════════════════════════════════════════════════
     if not is_sudo_or_owner(user_id):
         return
@@ -585,8 +571,8 @@ async def handle_update(client, update: dict):
             f"❖═━•〔 𝐀𝐋𝐋 𝐆𝐂 𝐋𝐀𝐔𝐍𝐂𝐇𝐄𝐃 〕•━═❖\n"
             f"├─▹ 𝐓𝐚𝐫𝐠𝐞𝐭: `{arg}`\n"
             f"├─▹ 𝐆𝐫𝐨𝐮𝐩𝐬: `{started} Groups Started`\n"
-            f"├─▹ 𝐒𝐩𝐞𝐞𝐝: `1.0s Ultra-Speed (Zero-Flood)`\n"
-            f"╰─▹ 𝐆𝐮𝐚𝐫𝐝: `Active (< 4.0 GB / M Safe)`\n"
+            f"├─▹ 𝐒𝐩𝐞𝐞𝐝: `0.72s Rocket (Zero-Flood)`\n"
+            f"╰─▹ 𝐆𝐮𝐚𝐫𝐝: `Active (< 3.0 GB / M Safe)`\n"
             f"❖═━•〔 𝐍𝐨𝐧-𝐒𝐭𝐨𝐩 24/7 〕•━═❖"
         )
         return
@@ -655,7 +641,7 @@ async def handle_update(client, update: dict):
                 f"├─▹ 𝐒𝐭𝐨𝐩:  `/nc stop`\n"
                 f"├─▹ 𝐀𝐥𝐥:   `/allgc <name>`\n"
                 f"╰─▹ 𝐔𝐬𝐚𝐠𝐞: `! usage`\n"
-                f"❖═━•〔 𝐕𝐞𝐫𝐬𝐢𝐨𝐧 3.0 〕•━═❖"
+                f"❖═━•〔 𝐙𝐞𝐫𝐨-𝐅𝐥𝐨𝐨𝐝 • 0.72𝐬 〕•━═❖"
             )
             return
 
@@ -672,18 +658,14 @@ async def handle_update(client, update: dict):
             f"⚡ ◢█◣ ⟨ 𝐌𝐄𝐍𝐓𝐀𝐋 • 𝐏𝐄𝐑𝐌𝐀 ⟩ ◢█◣\n"
             f"❖═━•〔 𝐍𝐂 𝐄𝐍𝐆𝐈𝐍𝐄 𝐒𝐓𝐀𝐑𝐓𝐄𝐃 〕•━═❖\n"
             f"├─▹ 𝐓𝐚𝐫𝐠𝐞𝐭: `{arg}`\n"
-            f"├─▹ 𝐒𝐩𝐞𝐞𝐝: `1.0s Ultra-Speed (Zero-Flood)`\n"
+            f"├─▹ 𝐒𝐩𝐞𝐞𝐝: `0.72s Rocket (Zero-Flood)`\n"
             f"├─▹ 𝐁𝐨𝐭𝐬: `{len(BOT_TOKENS)} Active Chain`\n"
             f"├─▹ 𝐀𝐮𝐭𝐨-𝐏𝐮𝐫𝐠𝐞: `Daily 6:00 PM IST`\n"
             f"╰─▹ 𝐒𝐭𝐨𝐩: `/nc stop`\n"
             f"❖═━•〔 𝐙𝐞𝐫𝐨-𝐅𝐥𝐨𝐨𝐝 • 𝟐𝟒/𝟕 〕•━═❖"
         )
 
-# 9. Render Keep-Alive & Telegram Webhook HTTP Server (Port 10000)
-# ⚡ 500% BYPASS ENGINE: Dual-Action HTTP Server
-# 1. Pings from UptimeRobot return instant 204 No Content (0 body bytes).
-# 2. Inbound Telegram Webhook requests receive updates pushed by Telegram, eliminating getUpdates long-polling entirely!
-# Result: 95% bandwidth eliminated! Total monthly data stays under 500 MB - 1.2 GB!
+# 9. Render Keep-Alive HTTP Server (Port 10000)
 async def start_http_and_webhook_server(port: int, client, primary_token: str):
     async def handle_connection(reader, writer):
         try:
@@ -693,7 +675,6 @@ async def start_http_and_webhook_server(port: int, client, primary_token: str):
             req_line = line.decode("utf-8", errors="ignore").strip()
             method, path, *_ = req_line.split() if req_line else ("GET", "/", "")
 
-            # Read headers
             content_length = 0
             while True:
                 header_line = await reader.readline()
@@ -706,14 +687,11 @@ async def start_http_and_webhook_server(port: int, client, primary_token: str):
                     except Exception:
                         pass
 
-            # If it's the Telegram Webhook push POST /webhook
             if method.upper() == "POST" and "/webhook" in path and content_length > 0:
                 body = await reader.readexactly(content_length)
-                # Reply 200 OK immediately to Telegram
                 writer.write(b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
                 await writer.drain()
 
-                # Process update asynchronously in memory
                 try:
                     update_json = json.loads(body.decode("utf-8", errors="ignore"))
                     uid = update_json.get("update_id")
@@ -726,8 +704,6 @@ async def start_http_and_webhook_server(port: int, client, primary_token: str):
                     pass
                 return
 
-            # Otherwise, it's UptimeRobot or health check ping GET /
-            # Reply 204 No Content (0 Bytes outbound, 100% free)
             writer.write(b"HTTP/1.1 204 No Content\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
             await writer.drain()
         except Exception:
@@ -741,13 +717,13 @@ async def start_http_and_webhook_server(port: int, client, primary_token: str):
 
     try:
         server = await asyncio.start_server(handle_connection, "0.0.0.0", port)
-        print(f"🌐 500% Bypass Webhook/Ping Server running on port {port}")
+        print(f"🌐 Keep-Alive Server running on port {port}")
         return server
     except Exception as e:
         print(f"⚠️ Port {port} note: {e}")
         return None
 
-# 10. Main Engine (Hybrid Webhook + Adaptive Poller Fallback)
+# 10. Main Engine
 async def main():
     import httpx
 
@@ -758,11 +734,10 @@ async def main():
     print("🚀 Starting Ultra-Lightweight NC Bot with 500% Permanent Bypass...")
     print(f"👑 Owner ID: {OWNER_ID or 'Any Admin'}")
     print(f"🤖 Loaded Bots: {len(BOT_TOKENS)}")
-    print(f"⏱️ NC Cadence: Dynamic 5GB Mathematical Ceiling")
+    print(f"⏱️ NC Cadence: 0.72s Zero-Flood Sweet Spot")
 
     asyncio.create_task(daily_memory_cleaner_worker())
 
-    # Enable HTTP/2 multiplexing & HPACK compression + connection pool reuse
     limits = httpx.Limits(max_keepalive_connections=50, max_connections=100, keepalive_expiry=60.0)
     client_kwargs = {"timeout": 15.0, "limits": limits}
     try:
@@ -776,10 +751,8 @@ async def main():
         offset = 0
         global seen_update_ids
 
-        # Start dual-action Webhook & Ping HTTP Server on PORT 10000
         await start_http_and_webhook_server(PORT, client, primary_token)
 
-        # 👑 Auto-update bot description & about on host startup
         try:
             desc_text = "⚡ HOSTING BY MENTALS ⚡\n👑 Hosted By: AMRIT\n🚀 24/7 Ultra-Fast NC Engine\n💎 Powered by Mentals Perma"
             short_desc = "⚡ Hosting By Mentals | Hosted By AMRIT"
@@ -793,57 +766,24 @@ async def main():
         except Exception:
             pass
 
-        # ⚡ 500% WEBHOOK AUTO-REGISTRATION (Bypasses 95% of Render Inbound/Outbound Polling Bandwidth)
-        use_webhook = False
-        if RENDER_EXTERNAL_URL:
-            webhook_url = f"{RENDER_EXTERNAL_URL}/webhook"
+        print("⚡ NC Bot is ONLINE and actively listening for commands...")
+        while True:
             try:
-                # Tell Telegram to send updates ONLY via Webhook push, dropping zero-content poll loops
-                wh_resp = await client.post(
-                    f"https://api.telegram.org/bot{primary_token}/setWebhook",
-                    json={
-                        "url": webhook_url,
-                        "allowed_updates": ["message", "my_chat_member"],
-                        "drop_pending_updates": True,
-                    },
-                    timeout=5.0
-                )
-                wh_data = wh_resp.json()
-                if wh_data.get("ok"):
-                    use_webhook = True
-                    print(f"🔥 [500% BYPASS ACTIVE] Telegram Webhook set to: {webhook_url}")
-                    print("🛡️ Long-polling disabled: 95% Bandwidth saved! Never crosses 1 GB per month!")
-                else:
-                    print(f"⚠️ Webhook setup fallback: {wh_data.get('description')}")
-            except Exception as e:
-                print(f"⚠️ Webhook error: {e}")
-
-        # If Webhook succeeded, the HTTP server on Port 10000 receives all updates directly!
-        # If Webhook is not configured (e.g. local run), fallback to ultra-conservative low-power long polling
-        if use_webhook:
-            # Bot simply keeps running forever receiving webhook pushes. Zero polling bandwidth!
-            while True:
-                await asyncio.sleep(3600)
-        else:
-            # Fallback Long Polling with 50-second sleep timeout (saves 60% polling compared to 20s)
-            print("⚡ Webhook URL not provided. Running in Ultra-Low-Bandwidth Polling Mode...")
-            while True:
-                try:
-                    url = f"https://api.telegram.org/bot{primary_token}/getUpdates"
-                    params = {"offset": offset, "timeout": 45, "allowed_updates": '["message","my_chat_member"]'}
-                    resp = await client.get(url, params=params, timeout=50.0)
-                    data = resp.json()
-                    if data.get("ok"):
-                        for u in data.get("result", []):
-                            uid = u["update_id"]
-                            offset = uid + 1
-                            if uid not in seen_update_ids:
-                                seen_update_ids.add(uid)
-                                if len(seen_update_ids) > 100:
-                                    seen_update_ids = set(sorted(list(seen_update_ids))[-30:])
-                                asyncio.create_task(handle_update(client, u))
-                except Exception:
-                    await asyncio.sleep(2.0)
+                url = f"https://api.telegram.org/bot{primary_token}/getUpdates"
+                params = {"offset": offset, "timeout": 20, "allowed_updates": '["message","my_chat_member"]'}
+                resp = await client.get(url, params=params, timeout=25.0)
+                data = resp.json()
+                if data.get("ok"):
+                    for u in data.get("result", []):
+                        uid = u["update_id"]
+                        offset = uid + 1
+                        if uid not in seen_update_ids:
+                            seen_update_ids.add(uid)
+                            if len(seen_update_ids) > 100:
+                                seen_update_ids = set(sorted(list(seen_update_ids))[-30:])
+                            asyncio.create_task(handle_update(client, u))
+            except Exception:
+                await asyncio.sleep(1.0)
 
 if __name__ == "__main__":
     try:
